@@ -1,5 +1,5 @@
 class Pet
-  attr_reader :level, :name, :xp, :xp_requirement
+  attr_reader :level, :name, :coins, :coins_needed, :coins, :coins_needed
 
   def initialize
     # core render vars
@@ -10,7 +10,7 @@ class Pet
     @color = { r: 200, g: 0, b: 0 }
 
     # physics vars
-    @jump_velocity = Numeric.rand(10..30)
+    @jump_velocity = Numeric.rand(10..20)
     @acceleration = 0.1
     @gravity = 0.66
     @dx = 0
@@ -21,15 +21,27 @@ class Pet
     # AI vars
     @state = :idle
     @state_timer = Kernel.tick_count
-    @state_change_time = Numeric.rand(1..5)
+    @state_change_time = Numeric.rand(1..3)
     @jump_timer = Kernel.tick_count
-    @jump_time = Numeric.rand(1..8)
+    @jump_time = Numeric.rand(1..5)
 
     # game vars
     @name = "Dick Johnson"
     @level = 1
-    @xp = 0
-    @xp_requirement = 10
+    @coins = 0
+    @coins_needed = 10
+    @level_chart = {
+      1 => 10,
+      2 => 20,
+      3 => 35,
+      4 => 50,
+      5 => 75,
+      6 => 110,
+      7 => 150,
+      8 => 200,
+      9 => 250,
+      10 => 300
+    }
     
 
     
@@ -41,20 +53,20 @@ class Pet
 
     # handle AI
     if @state_timer.elapsed_time >= @state_change_time.seconds
+      puts @state_change_time.seconds
       @state_timer = Kernel.tick_count
       @state_change_time = Numeric.rand(1..5)
 
       if @state == :idle
         @state = :moving
 
-        direction = Numeric.rand(0..1)
+        direction = [-1, 1].sample
         speed = Numeric.rand(2..10)
 
         @target_dx = direction * speed
 
       elsif @state == :moving
         @state = :idle
-
         @target_dx = 0
       end
     end
@@ -99,10 +111,16 @@ class Pet
 
   end
 
-  def level=(new_level)
-    @level = new_level
-    @level = 1 if new_level > 5 || new_level < 1
-    p @level
+  def level_up()
+    @level += 1
+    @coins -= @coins_needed
+
+    if @level_chart[@level]
+      @coins_needed = @level_chart[@level]
+    else
+      @coins_needed = 300
+    end
+
     case @level
     when 1
       @color = { r: 255, g: 0, b: 0 }
@@ -114,6 +132,13 @@ class Pet
       @color = { r: 0, g: 255, b: 0 }
     when 5
       @color = { r: 255, g: 0, b: 255 }
+    end
+  end
+
+  def coins=(new_coins)
+    @coins = new_coins
+    if @coins >= @coins_needed
+      level_up
     end
   end
 

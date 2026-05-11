@@ -14,6 +14,10 @@ class Game
   def tick
     $tickables.values.each { |tickable| tickable.tick } unless $tickables.empty?
 
+    if inputs.keyboard.key_down.space
+      @pet.coins = @pet.coins + 2
+    end
+
     render
   end
   
@@ -35,13 +39,24 @@ class Game
 
     outputs.labels << {
       x: Grid.w / 2,
-      y: Grid.h - 100,
+      y: Grid.h - 77,
       alignment_enum: 1,
       size_enum: 10,
       r: 255,
       g: 0,
       b: 0,
       text: "Level #{@pet.level}"
+    }
+
+    outputs.labels << {
+      x: Grid.w / 2,
+      y: Grid.h - 120,
+      alignment_enum: 1,
+      size_enum: 5,
+      r: 255,
+      g: 0,
+      b: 0,
+      text: "Coins Eaten: #{@pet.coins} / #{@pet.coins_needed}"
     }
   end
 end
