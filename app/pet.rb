@@ -1,29 +1,119 @@
 class Pet
+  attr_reader :level, :name, :xp, :xp_requirement
+
   def initialize
+    # core render vars
     @x = 50
     @y = 50
     @w = 64
     @h = 64
+    @color = { r: 200, g: 0, b: 0 }
 
-    @color = { r: 255, g: 0, b: 0 }
+    # physics vars
+    @jump_velocity = Numeric.rand(10..30)
+    @acceleration = 0.1
+    @gravity = 0.66
+    @dx = 0
+    @dy = 0
+    @target_dx = 0
+    @target_dy = 0
 
-    @wander_timer = Kernel.tick_count
-    @state_change_time = Numeric.rand(1..5)
+    # AI vars
     @state = :idle
+    @state_timer = Kernel.tick_count
+    @state_change_time = Numeric.rand(1..5)
+    @jump_timer = Kernel.tick_count
+    @jump_time = Numeric.rand(1..8)
+
+    # game vars
+    @name = "Dick Johnson"
+    @level = 1
+    @xp = 0
+    @xp_requirement = 10
+    
+
+    
 
     $tickables[self] = self
   end
 
   def tick
-    if @wander_timer.elapsed_time >= @state_change_time.seconds
-      @wander_timer = Kernel.tick_count
+
+    # handle AI
+    if @state_timer.elapsed_time >= @state_change_time.seconds
+      @state_timer = Kernel.tick_count
       @state_change_time = Numeric.rand(1..5)
 
       if @state == :idle
         @state = :moving
+
+        direction = Numeric.rand(0..1)
+        speed = Numeric.rand(2..10)
+
+        @target_dx = direction * speed
+
       elsif @state == :moving
         @state = :idle
+
+        @target_dx = 0
       end
+    end
+
+    if @jump_timer.elapsed_time >= @jump_time.seconds
+      @jump_timer = Kernel.tick_count
+      @jump_time = Numeric.rand(1..8)
+      @jump_height = Numeric.rand(10..30)
+
+      @dy = @jump_velocity
+    end
+
+    # apply physics
+    @dx = @dx.lerp(@target_dx, @acceleration)
+    @dy -= @gravity
+
+    @x += @dx
+    @y += @dy
+
+    # handle collisions
+    if @x > Grid.w - @w
+      @x = Grid.w - @w
+      @dx = @dx * -1
+      @target_dx = @target_dx * -1
+    end
+    if @x < 0
+      @x = 0
+      @dx = @dx * -1
+      @target_dx = @target_dx * -1
+    end
+
+    if @y > Grid.h - @h
+      @y = Grid.h - @h
+      @dy = @dy * -1
+      @target_dy = @target_dy * -1
+    end
+    if @y < 50
+      @y = 50
+      @dy = 0
+      @target_dy = 0
+    end
+
+  end
+
+  def level=(new_level)
+    @level = new_level
+    @level = 1 if new_level > 5 || new_level < 1
+    p @level
+    case @level
+    when 1
+      @color = { r: 255, g: 0, b: 0 }
+    when 2
+      @color = { r: 255, g: 165, b: 0 }
+    when 3
+      @color = { r: 255, g: 255, b: 0 }
+    when 4
+      @color = { r: 0, g: 255, b: 0 }
+    when 5
+      @color = { r: 255, g: 0, b: 255 }
     end
   end
 
