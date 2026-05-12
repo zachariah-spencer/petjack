@@ -1,6 +1,7 @@
 require_relative "card"
 
 class Deck
+  attr :deck
   def initialize
     @deck = [
       Card.new(:heart, 13),

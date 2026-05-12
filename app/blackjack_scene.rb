@@ -77,6 +77,11 @@ require_relative "hand"
               @bet *= 2
               calc_round_outcome
               @phase = :resolution
+            elsif inputs.keyboard.key_down.s
+              # two identical card values means you can split
+              if @players_hand.cards[0].value == @players_hand.cards[1].value
+                # handle split logic here
+              end
             elsif inputs.keyboard.key_down.enter
               @players_hand.add(@deck.draw)
               calc_round_outcome
