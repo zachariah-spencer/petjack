@@ -1,0 +1,49 @@
+class Hand
+  attr :cards
+
+  def initialize(x, y)
+    @cards = []
+    @x = x
+    @y = y
+  end
+
+  def add(card)
+    @cards << card
+    calc_card_positions
+  end
+
+  def clear
+    @card.clear
+  end
+
+  def calc_card_positions
+    card_w = 128
+    spacing = 32
+    step = card_w + spacing
+
+    total_width = 
+      if @cards.size <= 1
+        card_w
+      else
+        card_w + ((@cards.size - 1) * step)
+      end
+
+    starting_x = 
+    if @cards.size <= 1
+      @x
+    else
+      @x - (total_width / 2) + (card_w / 2)
+    end
+
+    @cards.each_with_index do |c, i|
+      c.x = starting_x + (i * step)
+      c.y = @y
+    end
+  end
+
+  def primitives
+    [
+      @cards.flat_map { |c| c.primitives }
+    ]
+  end
+end
