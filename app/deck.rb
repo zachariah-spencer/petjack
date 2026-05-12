@@ -78,8 +78,9 @@ class Deck
 
   def reshuffle
     puts "Reshuffling discard into deck"
-    @in_play = @discarded
-    @in_play.shuffle
+    @deck = @deck + @discards
+    @discards.clear
+    @deck.shuffle
   end
   
 end

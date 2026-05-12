@@ -31,8 +31,9 @@ require_relative "root_scene"
           state.next_scene = :battle
         end
 
-        if inputs.keyboard.key_down.space
-          @pet.coins = @pet.coins + 2
+        if inputs.keyboard.key_down.space && $coins > 0
+          @pet.coins = @pet.coins + 1
+          $coins -= 1
         end
       end
     end

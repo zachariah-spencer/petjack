@@ -26,7 +26,7 @@ class Pet
     @jump_time = Numeric.rand(1..5)
 
     # game vars
-    @name = "Dick Johnson"
+    @name = "Silly Little Goober"
     @level = 1
     @coins = 0
     @coins_needed = 10

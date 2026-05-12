@@ -41,6 +41,22 @@ class Hand
     end
   end
 
+  def total_value
+    sum = 0
+
+    @cards.each do |c|
+        sum += c.actual_value if c.face
+    end
+
+    @cards.each do |c|
+      if c.value == 1 && sum > 21 && c.face
+        sum -= 10
+      end
+    end
+
+    sum
+  end
+
   def primitives
     [
       @cards.flat_map { |c| c.primitives }

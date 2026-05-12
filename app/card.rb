@@ -15,23 +15,38 @@ class Card
     @face = !@face
   end
 
-  def display_name
+  def value_string
     if ![1, 11, 12, 13].include?(@value)
-      display_value = @value
+      @value
     else
       case @value
       when 1
-        display_value = "Ace"
+        "Ace"
       when 11
-        display_value = "Jack"
+        "Jack"
       when 12
-        display_value = "Queen"
+        "Queen"
       when 13
-        display_value = "King"
+        "King"
       end
     end
+  end
 
-    "#{display_value} of #{@suit.capitalize}s"
+  def actual_value
+    if ![1, 11, 12, 13].include?(@value)
+      @value
+    else
+      case @value
+      when 1
+        11
+      when 11
+        10
+      when 12
+        10
+      when 13
+        10
+      end
+    end
   end
 
   def primitives
@@ -53,17 +68,29 @@ class Card
     if @face
         all_primitives << {
           primitive_marker: :label,
-          x: @x - (@w / 2),
+          x: @x,
           y: @y,
-          text: "#{display_name}",
+          alignment_enum: 1,
+          text: "#{value_string}",
+          size_enum: 3,
+          r: 255
+        }
+
+        all_primitives << {
+          primitive_marker: :label,
+          x: @x,
+          y: @y - 50,
+          alignment_enum: 1,
+          text: "#{@suit}",
           size_enum: 3,
           r: 255
         }
     else
         all_primitives << {
           primitive_marker: :label,
-          x: @x - (@w / 2),
+          x: @x,
           y: @y,
+          alignment_enum: 1,
           text: "Face Down",
           size_enum: 3,
           r: 255

@@ -25,6 +25,10 @@ require_relative "battle_scene"
       # these instance variables are used to control the scene transition animation
       @current_scene_rect = current_scene_start_rect
       @previous_scene_rect = previous_scene_start_rect
+
+      # game variables
+      $coins = 50
+      
     end
 
     # this is the main tick function for the root scene.
@@ -99,6 +103,15 @@ require_relative "battle_scene"
       # animation
       outputs.primitives << { **previous_scene_rect, path: :previous_scene, a: previous_scene_alpha }
       outputs.primitives << { **current_scene_rect, path: :current_scene, a: current_scene_alpha }
+
+      outputs.primitives << {
+        primitive_marker: :label,
+        x: 40,
+        y: 40,
+        text: "Player Coins: #{$coins}",
+        b: 255,
+        g: 255,
+      }
 
       # debug primitives to visualize control locations
       # outputs.primitives << Layout.debug_primitives(invert_colors: true, a: 32)
