@@ -42,11 +42,6 @@ class Pet
       9 => 250,
       10 => 300
     }
-    
-
-    
-
-    $tickables[self] = self
   end
 
   def tick
@@ -144,6 +139,7 @@ class Pet
 
   def draw
     {
+      primitive_marker: :solid,
       x: @x,
       y: @y,
       w: @w,
