@@ -24,20 +24,22 @@ require_relative "hand"
     def tick
       @tickables.values.each { |tickable| tickable.tick } unless @tickables.empty?
 
-      if inputs.keyboard.key_down.e && state.current_scene == id
-        state.next_scene = :home
-      end
+      if state.current_scene == id
+        if inputs.keyboard.key_down.e
+          state.next_scene = :home
+        end
 
-      if inputs.keyboard.key_down.space
-        card_drawn = @deck.draw([true, false].sample)
-        @players_hand.add(card_drawn)
+        if inputs.keyboard.key_down.p
+          card_drawn = @deck.draw([true, false].sample)
+          @players_hand.add(card_drawn)
+        end
 
-        if card_drawn.face
-          puts "Drew a: #{card_drawn.display_name}"
-        else
-          puts "Drew a card face down. (Shhh it is a #{card_drawn.display_name})"
+        if inputs.keyboard.key_down.d
+          card_drawn = @deck.draw([true, false].sample)
+          @dealers_hand.add(card_drawn)
         end
       end
+      
     end
 
     def primitives

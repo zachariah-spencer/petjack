@@ -22,10 +22,6 @@ require_relative "root_scene"
     def tick
       @tickables.values.each { |tickable| tickable.tick } unless @tickables.empty?
 
-      if inputs.keyboard.key_down.space
-        @pet.coins = @pet.coins + 2
-      end
-
       if state.current_scene == id
         if inputs.keyboard.key_down.q
           state.next_scene = :blackjack
@@ -33,6 +29,10 @@ require_relative "root_scene"
 
         if inputs.keyboard.key_down.e
           state.next_scene = :battle
+        end
+
+        if inputs.keyboard.key_down.space
+          @pet.coins = @pet.coins + 2
         end
       end
     end
