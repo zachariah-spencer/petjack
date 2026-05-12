@@ -10,15 +10,11 @@ require_relative "hand"
     def initialize
       @tickables = {}
       @deck = Deck.new
-      @players_hand = Hand.new(Grid.w / 2, 100)
-      @dealers_hand = Hand.new(Grid.w / 2, Grid.h - 256)
+      
+      @players_hands = []
+      @active_hand = nil
+      @dealers_hand = Hand.new(Grid.w / 2, Grid.h - 256, -1)
       @bet = 10
-      @resolutions = [
-        :lost,
-        :won,
-        :undecided,
-        :push
-      ]
       @phases = [
         :betting,
         :dealing,
@@ -26,9 +22,7 @@ require_relative "hand"
         :resolution,
         :end_of_round
       ]
-
       @phase = :betting
-      @resolution = :undecided
     end
 
     def activate!
@@ -54,92 +48,116 @@ require_relative "hand"
 
             if inputs.keyboard.key_down.space
               if $coins >= @bet
+                @players_hands << Hand.new(Grid.w / 2, 100, @bet)
+                @active_hand = @players_hands.first
                 @phase = :dealing
                 $coins -= @bet
               end
             end
+
+          
+
           elsif @phase == :dealing
-            @players_hand.add(@deck.draw)
+            @active_hand.add(@deck.draw)
             @dealers_hand.add(@deck.draw)
-            @players_hand.add(@deck.draw)
+            @active_hand.add(@deck.draw)
             @dealers_hand.add(@deck.draw(false))
             
-            if @players_hand.total_value != 21
+            if @active_hand.total_value != 21
               @phase = :decision
             else
-              @resolution = :blackjack
+              @active_hand.outcome = :blackjack
               @phase = :resolution
             end
+
+
+
           elsif @phase == :decision
-            if inputs.keyboard.key_down.d && @players_hand.cards.size <= 2
+            if inputs.keyboard.key_down.d && @active_hand.cards.size <= 2
               # double down
-              @players_hand.add(@deck.draw)
-              @bet *= 2
+              @active_hand.add(@deck.draw)
+              @active_hand.bet *= 2
               calc_round_outcome
               @phase = :resolution
+              @active_hand.in_play = false
             elsif inputs.keyboard.key_down.s
               # two identical card values means you can split
-              if @players_hand.cards[0].value == @players_hand.cards[1].value
-                # handle split logic here
+              if @active_hand.cards[0].value == @active_hand.cards[1].value
+                # TODO: handle split logic here
               end
             elsif inputs.keyboard.key_down.enter
-              @players_hand.add(@deck.draw)
+              @active_hand.add(@deck.draw)
               calc_round_outcome
             elsif inputs.keyboard.key_down.space
               @phase = :resolution
+              @active_hand.in_play = false
             end
+
+            hands_in_play = false
+            @players_hands.each { |h| hands_in_play = true if h.in_play }
+            @phase = :resolution unless hands_in_play
         
+
+            
           elsif @phase == :resolution
 
-            if @resolution == :undecided
-              @dealers_hand.cards.each { |c| c.face = true }
-              while @dealers_hand.total_value < 17
-                @dealers_hand.add(@deck.draw)
+            @players_hands.each do |h|
+              if h.outcome == :undecided
+                @dealers_hand.cards.each { |c| c.face = true }
+                while @dealers_hand.total_value < 17
+                  @dealers_hand.add(@deck.draw)
+                end
+
+                if @dealers_hand.total_value > 21
+                  h.outcome = :won
+                end
+
+                if @dealers_hand.total_value == 21 && @dealers_hand.cards.size <= 2
+                  # both player and dealer have blackjack
+                  if h.total_value == 21 && h.cards.size <= 2
+                    h.outcome = :push
+                  else
+                    h.outcome = :lost
+                  end
+                end
               end
 
-              if @dealers_hand.total_value > 21
-                @resolution = :won
-              end
-
-              if @dealers_hand.total_value == 21 && @dealers_hand.cards.size <= 2
-                # both player and dealer have blackjack
-                if @players_hand.total_value == 21 && @players_hand.cards.size <= 2
-                  @resolution = :push
+              if h.outcome == :undecided
+                if h.total_value > @dealers_hand.total_value
+                  h.outcome = :won
+                elsif @dealers_hand.total_value > h.total_value
+                  h.outcome = :lost
                 else
-                  @resolution = :lost
+                  h.outcome = :push
                 end
               end
             end
 
-            if @resolution == :undecided
-              if @players_hand.total_value > @dealers_hand.total_value
-                @resolution = :won
-              elsif @dealers_hand.total_value > @players_hand.total_value
-                @resolution = :lost
-              else
-                @resolution = :push
+            @players_hands.each do |h|
+              if h.outcome == :won
+                $coins += h.bet + h.bet
+              end
+              if h.outcome == :push
+                $coins += h.bet
+              end
+              if h.outcome == :blackjack
+                $coins += h.bet + (h.bet * (3/2))
               end
             end
-
-            if @resolution == :won
-              $coins += @bet + @bet
-            end
-            if @resolution == :push
-              $coins += @bet
-            end
-            if @resolution == :blackjack
-              $coins += @bet + (@bet * (3/2))
-            end
+            
 
             @phase = :end_of_round
+
+
+
           elsif @phase == :end_of_round
             if inputs.keyboard.key_down.space
               @bet = 10
-              @players_hand.cards.clear
+              @active_hand = nil
+              @players_hands.clear
               @dealers_hand.cards.clear
               @deck.reshuffle
               @phase = :betting
-              @resolution = :undecided
             end
           end
 
@@ -147,14 +165,14 @@ require_relative "hand"
       end
 
     def calc_round_outcome
-      if @players_hand.total_value > 21
+      if @active_hand.total_value > 21
         # bust
-        @resolution = :lost
-        @phase = :resolution
-      elsif @players_hand.total_value == 21 && @players_hand.cards.size <= 2
+        @active_hand.outcome = :lost
+        @active_hand.in_play = false
+      elsif @active_hand.total_value == 21 && @active_hand.cards.size <= 2
         # blackjack
-        @resolution = :blackjack
-        @phase = :resolution
+        @active_hand.outcome = :blackjack
+        @active_hand.in_play = false
       else
         # other non-bust values
       end
@@ -216,7 +234,8 @@ require_relative "hand"
           text: "#{@phase}",
           g: 255
         },
-        @players_hand.primitives,
+        
+        @active_hand&.primitives,
         @dealers_hand.primitives
       ]
 
@@ -230,7 +249,7 @@ require_relative "hand"
           r: 255,
           g: 0,
           b: 0,
-          text: "#{@players_hand.total_value}"
+          text: "#{@active_hand.total_value}"
         }
 
         all_primitives << {

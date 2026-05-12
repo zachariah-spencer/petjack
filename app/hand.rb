@@ -1,10 +1,13 @@
 class Hand
-  attr :cards
+  attr :cards, :bet, :outcome, :in_play
 
-  def initialize(x, y)
+  def initialize(x, y, bet)
     @cards = []
     @x = x
     @y = y
+    @bet = bet
+    @outcome = :undecided
+    @in_play = true
   end
 
   def add(card)
