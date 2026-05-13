@@ -49,6 +49,7 @@ require_relative "hand"
             if inputs.keyboard.key_down.space
               if $coins >= @bet
                 @players_hands << Hand.new(Grid.w / 2, 100, @bet)
+                calc_hand_positions
                 @active_hand = @players_hands.first
                 @phase = :dealing
                 $coins -= @bet
@@ -62,6 +63,7 @@ require_relative "hand"
             @dealers_hand.add(@deck.draw)
             @active_hand.add(@deck.draw)
             @dealers_hand.add(@deck.draw(false))
+            calc_hand_positions
             
             if @active_hand.total_value != 21
               @phase = :decision
@@ -73,23 +75,40 @@ require_relative "hand"
 
 
           elsif @phase == :decision
+            puts @active_hand.in_play
+            unless @active_hand.in_play
+              puts "here"
+              prev_active_hand = @players_hands.index(@active_hand)
+              @active_hand = @players_hands[prev_active_hand + 1] 
+            end
             if inputs.keyboard.key_down.d && @active_hand.cards.size <= 2
               # double down
               @active_hand.add(@deck.draw)
+              calc_hand_positions
               @active_hand.bet *= 2
               calc_round_outcome
-              @phase = :resolution
               @active_hand.in_play = false
             elsif inputs.keyboard.key_down.s
               # two identical card values means you can split
-              if @active_hand.cards[0].value == @active_hand.cards[1].value
-                # TODO: handle split logic here
+              if @active_hand.cards.size > 1 && @active_hand.cards[0].value == @active_hand.cards[1].value
+
+                # handle split
+                if $coins >= @bet
+                  $coins -= @bet
+                  new_hand = Hand.new(100, 100, @bet)
+                  new_hand.add(@active_hand.cards.delete_at(0))
+                  @players_hands << new_hand
+                  calc_hand_positions
+                end
+
+                
+                
               end
             elsif inputs.keyboard.key_down.enter
               @active_hand.add(@deck.draw)
+              calc_hand_positions
               calc_round_outcome
             elsif inputs.keyboard.key_down.space
-              @phase = :resolution
               @active_hand.in_play = false
             end
 
@@ -177,6 +196,19 @@ require_relative "hand"
         # other non-bust values
       end
     end
+    
+    def calc_hand_positions
+      return if @players_hands.empty?
+
+      spacing = 64
+      total_width = @players_hands.sum(&:rendered_width) + (spacing * (@players_hands.size - 1))
+      current_x = (Grid.w - total_width) / 2
+
+      @players_hands.each do |hand|
+        hand.x = current_x + (hand.rendered_width / 2)
+        current_x += hand.rendered_width + spacing
+      end
+    end
 
     def primitives
       all_primitives = [
@@ -234,35 +266,13 @@ require_relative "hand"
           text: "#{@phase}",
           g: 255
         },
-        
-        @active_hand&.primitives,
         @dealers_hand.primitives
       ]
 
-      if @phase != :betting
-        all_primitives << {
-          primitive_marker: :label,
-          x: Grid.w / 2,
-          y: Grid.h / 2 - 240,
-          alignment_enum: 1,
-          size_enum: 5,
-          r: 255,
-          g: 0,
-          b: 0,
-          text: "#{@active_hand.total_value}"
-        }
-
-        all_primitives << {
-          primitive_marker: :label,
-          x: Grid.w / 2,
-          y: Grid.h / 2 + 110,
-          alignment_enum: 1,
-          size_enum: 5,
-          r: 255,
-          g: 0,
-          b: 0,
-          text: "#{@dealers_hand.total_value}"
-        }
+      if !@players_hands.empty?
+        @players_hands.each do |h|
+          all_primitives << h.primitives
+        end
       end
 
       all_primitives

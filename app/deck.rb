@@ -77,6 +77,21 @@ class Deck
     drawn
   end
 
+  def draw_specific(value, face = true)
+    reshuffle if @deck.empty?
+
+    if @deck.find { |c| c.value == value }
+      drawn = @deck.find { |c| c.value == value }
+
+      @deck.delete_if { |c| c.value == drawn.value && c.suit == drawn.suit }
+      @discards << drawn
+
+      drawn.face = face
+
+      drawn
+    end
+  end
+
   def reshuffle
     puts "Reshuffling discard into deck"
     @deck = @deck + @discards

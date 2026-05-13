@@ -15,7 +15,10 @@ doesn't exist on [NilClass, NilClassFalseClass].
 
 (suggestions above)
 ** Backtrace:
-*** app/blackjack_scene.rb:246:in primitives
+*** app/hand.rb:79:in primitives
+*** app/hand.rb:79:in primitives
+*** app/blackjack_scene.rb:274:in primitives
+*** app/blackjack_scene.rb:273:in primitives
 *** app/root_scene.rb:98:in render
 *** app/root_scene.rb:51:in tick
 *** app/main.rb:10:in tick

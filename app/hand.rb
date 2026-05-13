@@ -10,6 +10,11 @@ class Hand
     @in_play = true
   end
 
+  def x=(value)
+    @x = value
+    calc_card_positions
+  end
+
   def add(card)
     @cards << card
     calc_card_positions
@@ -44,6 +49,15 @@ class Hand
     end
   end
 
+  def rendered_width
+    card_w = 128
+    spacing = 32
+
+    return card_w if @cards.size <= 1
+
+    card_w + ((@cards.size - 1) * (card_w + spacing))
+  end
+
   def total_value
     sum = 0
 
@@ -62,7 +76,18 @@ class Hand
 
   def primitives
     [
-      @cards.flat_map { |c| c.primitives }
+      @cards.flat_map { |c| c.primitives },
+      {
+        primitive_marker: :label,
+        x: @x,
+        y: @y + 64,
+        alignment_enum: 1,
+        size_enum: 5,
+        r: 255,
+        g: 0,
+        b: 0,
+        text: "#{total_value}"
+      }
     ]
   end
 end
