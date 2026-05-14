@@ -154,7 +154,11 @@ require_relative "button"
 
     def build_buttons
       @buttons = [
-        Button.new(32, Grid.h - 80, 120, 44, "Exit", enabled_when: -> { can_leave_blackjack? }) { leave_blackjack },
+        Button.new(Grid.w - 32 - 8, Grid.h - 32 - 8, 32, 32, 
+        sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button-arrow-right.png", 
+        sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-arrow-right-pressed.png", 
+        enabled_when: -> { can_leave_blackjack? }) { leave_blackjack },
+
         Button.new(32, Grid.h - 140, 52, 44, "-", enabled_when: -> { can_decrease_bet? }) { decrease_bet },
         Button.new(92, Grid.h - 140, 52, 44, "+", enabled_when: -> { can_increase_bet? }) { increase_bet },
         Button.new(160, Grid.h - 140, 140, 44, "Deal", enabled_when: -> { can_start_round? }) { start_round },

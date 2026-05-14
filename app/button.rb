@@ -1,7 +1,7 @@
 class Button
   attr_reader :x, :y, :w, :h
 
-  def initialize(x, y, w, h, text, action = nil, enabled_when: nil, &block)
+  def initialize(x, y, w, h, text = "", action = nil, enabled_when: nil, sprite: nil, sprite_pressed: nil, &block)
     @x, @y, @w, @h = x, y, w, h
     @text = text
     @action = action || block
@@ -11,6 +11,8 @@ class Button
     @fade_event_at = Kernel.tick_count
     @a = enabled? ? 255 : 0
     @target_a = @a
+    @sprite = sprite
+    @sprite_pressed = sprite_pressed
   end
 
   def rect
@@ -63,8 +65,15 @@ class Button
       { r: 255, g: 255, b: 255 }
     end
 
+    sprite_path = 
+    if @pressed
+      @sprite_pressed
+    else
+      @sprite
+    end
+
     [
-      rect.merge(primitive_marker: :solid, a: @a, **bg),
+      rect.merge(primitive_marker: :sprite, a: @a, **bg, path: sprite_path),
       rect.merge(primitive_marker: :border, r: 0, g: 0, b: 0, a: @a),
       {
         primitive_marker: :label,
