@@ -85,12 +85,12 @@ require_relative "battle_scene"
       outputs.background_color = [20,20,20]
 
       # initialize the previous_scene and current_scene render targets
-      outputs[:previous_scene].set w: Grid.allscreen_w,
-                                   h: Grid.allscreen_h,
+      outputs[:previous_scene].set w: Grid.w,
+                                   h: Grid.h,
                                    background_color: [0, 0, 0, 0]
 
-      outputs[:current_scene].set w: Grid.allscreen_w,
-                                  h: Grid.allscreen_h,
+      outputs[:current_scene].set w: Grid.w,
+                                  h: Grid.h,
                                   background_color: [0, 0, 0, 0]
 
       # render the previous_scene and current_scene primitives to their respective render targets
@@ -148,19 +148,19 @@ require_relative "battle_scene"
     # creates a vertical wipe transition, but you can modify these to
     # create different transitions)
     def current_scene_end_rect
-      { x: Grid.allscreen_x, y: Grid.allscreen_y, w: Grid.allscreen_w, h: Grid.allscreen_h }
+      { x: 0, y: 0, w: Grid.w, h: Grid.h }
     end
 
     def current_scene_start_rect
-      { x: Grid.allscreen_x, y: -Grid.allscreen_h, w: Grid.allscreen_w, h: Grid.allscreen_h }
+      { x: 0, y: -Grid.h, w: Grid.w, h: Grid.h }
     end
 
     def previous_scene_end_rect
-      { x: Grid.allscreen_x, y: Grid.allscreen_h, w: Grid.allscreen_w, h: Grid.allscreen_h }
+      { x: 0, y: Grid.h, w: Grid.w, h: Grid.h }
     end
 
     def previous_scene_start_rect
-      { x: Grid.allscreen_x, y: Grid.allscreen_y, w: Grid.allscreen_w, h: Grid.allscreen_h }
+      { x: 0, y: 0, w: Grid.w, h: Grid.h }
     end
 
     # this is the easing function that gives us the percentage for how

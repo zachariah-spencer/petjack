@@ -48,7 +48,6 @@ class Pet
 
     # handle AI
     if @state_timer.elapsed_time >= @state_change_time.seconds
-      puts @state_change_time.seconds
       @state_timer = Kernel.tick_count
       @state_change_time = Numeric.rand(1..5)
 

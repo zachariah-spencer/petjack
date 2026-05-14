@@ -9,12 +9,16 @@ require_relative "hand"
 
     def initialize
       @tickables = {}
-      @deck = Deck.new
-      
+      @deal_queue = []
+      @next_deal_at = 0
+      @deal_delay = 15
+      @dealing_started = false
+      @deck = Deck.new(Grid.w - 100, Grid.h - 128)
       @players_hands = []
       @active_hand = nil
       @dealers_hand = Hand.new(Grid.w / 2, Grid.h - 256, -1, 0)
       @bet = 10
+      @resetting_tick = 0
       @phases = [
         :betting,
         :dealing,
@@ -31,6 +35,8 @@ require_relative "hand"
 
     def tick
       @tickables.values.each { |tickable| tickable.tick } unless @tickables.empty?
+      @dealers_hand.tick if @dealers_hand
+      @players_hands.each { |h| h.tick } unless @players_hands.empty?
 
       if state.current_scene == id
         if inputs.keyboard.key_down.e
@@ -46,8 +52,9 @@ require_relative "hand"
               @bet = (@bet - 5).clamp(10, 100)
             end
 
-            if inputs.keyboard.key_down.space
+            if inputs.keyboard.key_down.space && @resetting_tick.elapsed_time >= 0.25.seconds
               if $coins >= @bet
+                @players_hands.clear
                 @players_hands << Hand.new(Grid.w / 2, 100, @bet)
                 calc_hand_positions
                 @active_hand = @players_hands.first
@@ -59,23 +66,29 @@ require_relative "hand"
           
 
           elsif @phase == :dealing
-            @active_hand.add(@deck.draw)
-            @dealers_hand.add(@deck.draw)
-            @active_hand.add(@deck.draw)
-            @dealers_hand.add(@deck.draw(false))
-            calc_hand_positions
+            unless @dealing_started
+              queue_deal { @active_hand.add(@deck.draw) } 
+              queue_deal { @dealers_hand.add(@deck.draw) } 
+              queue_deal { @active_hand.add(@deck.draw) } 
+              queue_deal { @dealers_hand.add(@deck.draw(false)) }
+              @next_deal_at = Kernel.tick_count
+              @dealing_started = true
+            end
+
+            flush_one_queued_deal
             
-            if @active_hand.total_value != 21
-              @phase = :decision
-            else
-              @active_hand.outcome = :blackjack
-              @phase = :resolution
+            if @dealing_started && @deal_queue.empty?
+              if @active_hand.total_value != 21
+                @phase = :decision
+              else
+                @active_hand.outcome = :blackjack
+                @phase = :resolution
+              end
             end
 
 
 
           elsif @phase == :decision
-            puts @active_hand.in_play
             unless @active_hand.in_play
               prev_active_hand = @players_hands.index(@active_hand)
               @active_hand = @players_hands[prev_active_hand + 1] 
@@ -119,29 +132,33 @@ require_relative "hand"
             
           elsif @phase == :resolution
 
-            @players_hands.each do |h|
-              if h.outcome == :undecided
-                @dealers_hand.cards.each { |c| c.face = true }
-                while @dealers_hand.total_value < 17
-                  @dealers_hand.add(@deck.draw)
-                end
+            unless @dealer_turn_started
+              unless @active_hand.outcome == :blackjack
+                start_dealer_turn
+              else
+                @dealer_turn_started = true
+              end
+            end
 
-                if @dealers_hand.total_value > 21
+            flush_one_queued_deal
+
+            if @dealer_turn_started && @deal_queue.empty?
+              @dealer_turn_started = false
+
+              @players_hands.each do |h|
+                next unless h.outcome == :undecided
+
+                if h.total_value > 21
+                  h.outcome = :lost
+                elsif @dealers_hand.total_value > 21
                   h.outcome = :won
-                end
-
-                if @dealers_hand.total_value == 21 && @dealers_hand.cards.size <= 2
-                  # both player and dealer have blackjack
+                elsif @dealers_hand.total_value == 21 && @dealers_hand.cards.size <= 2
                   if h.total_value == 21 && h.cards.size <= 2
                     h.outcome = :push
                   else
                     h.outcome = :lost
                   end
-                end
-              end
-
-              if h.outcome == :undecided
-                if h.total_value > @dealers_hand.total_value
+                elsif h.total_value > @dealers_hand.total_value
                   h.outcome = :won
                 elsif @dealers_hand.total_value > h.total_value
                   h.outcome = :lost
@@ -149,32 +166,34 @@ require_relative "hand"
                   h.outcome = :push
                 end
               end
+
+              @players_hands.each do |h|
+                if h.outcome == :won
+                  $coins += h.bet + h.bet
+                end
+                if h.outcome == :push
+                  $coins += h.bet
+                end
+                if h.outcome == :blackjack
+                  $coins += h.bet + (h.bet * (3/2))
+                end
+              end
+
+              @phase = :end_of_round
             end
-
-            @players_hands.each do |h|
-              if h.outcome == :won
-                $coins += h.bet + h.bet
-              end
-              if h.outcome == :push
-                $coins += h.bet
-              end
-              if h.outcome == :blackjack
-                $coins += h.bet + (h.bet * (3/2))
-              end
-            end
-            
-
-            @phase = :end_of_round
-
-
 
           elsif @phase == :end_of_round
             if inputs.keyboard.key_down.space
               @bet = 10
               @active_hand = nil
-              @players_hands.clear
-              @dealers_hand.cards.clear
+              @resetting_tick = Kernel.tick_count
+              @dealers_hand.reset
+              @players_hands.each { |h| h.reset }
               @deck.reshuffle
+              @dealing_started = false
+              @dealer_turn_started = false
+              @deal_queue.clear
+              @next_deal_at = 0
               @phase = :betting
             end
           end
@@ -209,8 +228,42 @@ require_relative "hand"
       end
     end
 
+    def queue_deal(&block)
+      @deal_queue << block
+    end
+
+    def flush_one_queued_deal
+      return if @deal_queue.empty?
+      return if Kernel.tick_count < @next_deal_at
+      @deal_queue.shift.call
+      calc_hand_positions
+      @next_deal_at = Kernel.tick_count + @deal_delay
+    end
+
+    def start_dealer_turn
+      @dealer_turn_started = true
+      @deal_queue << -> do
+        face_down_card = @dealers_hand.cards.find { |c| !c.face}
+        face_down_card.face = true
+        queue_next_dealer_draw_if_needed
+      end
+      
+      @next_deal_at = Kernel.tick_count + @deal_delay
+    end
+
+    def queue_next_dealer_draw_if_needed
+      return if @dealers_hand.total_value >= 17
+
+      @deal_queue << -> do
+        @dealers_hand.add(@deck.draw)
+        calc_hand_positions
+        queue_next_dealer_draw_if_needed
+      end
+    end
+
     def primitives
       all_primitives = [
+        @deck.primitives,
         {
           primitive_marker: :label,
           x: Grid.w / 2,
@@ -268,13 +321,31 @@ require_relative "hand"
       ]
 
       if @dealers_hand && @phase != :betting
-        all_primitives << @dealers_hand.primitives
+        all_primitives << [@dealers_hand.primitives, @dealers_hand.score_label_primitive]
       end
 
       if !@players_hands.empty?
         @players_hands.each do |h|
           all_primitives << h.primitives
         end
+
+        unless @phase == :betting
+          @players_hands.each { |h| all_primitives << h.score_label_primitive }
+        end
+      end
+
+      if @phase == :betting && @resetting_tick && @resetting_tick.elapsed_time >= 0.25.seconds
+        all_primitives << {
+          primitive_marker: :label,
+          x: Grid.w / 2,
+          y: Grid.h / 2,
+          alignment_enum: 1,
+          size_enum: 15,
+          r: 255,
+          g: 0,
+          b: 0,
+          text: "Press SPACE to Play"
+        }
       end
 
       all_primitives

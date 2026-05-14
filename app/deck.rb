@@ -2,7 +2,13 @@ require_relative "card"
 
 class Deck
   attr :deck
-  def initialize
+  def initialize(x, y)
+    @x = x
+    @y = y
+
+    @w = 88
+    @h = 128
+
     @deck = [
       Card.new(:heart, 13, "sprites/cards/hearts_king.png"),
       Card.new(:heart, 12, "sprites/cards/hearts_queen.png"),
@@ -72,7 +78,7 @@ class Deck
     @deck.delete_if { |c| c.value == drawn.value && c.suit == drawn.suit }
     @discards << drawn
 
-    drawn.face = face
+    drawn.reset_for_draw(face)
 
     drawn
   end
@@ -97,6 +103,19 @@ class Deck
     @deck = @deck + @discards
     @discards.clear
     @deck.shuffle
+  end
+
+  def primitives
+    {
+      x: @x,
+      y: @y,
+      w: @w,
+      h: @h,
+      anchor_x: 0.5,
+      anchor_y: 0.5,
+      path: "sprites/cards/back01.png",
+      primitive_marker: :sprite
+    }
   end
   
 end
