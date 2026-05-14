@@ -1,13 +1,15 @@
 class Hand
   attr :cards, :bet, :outcome, :in_play
+  attr_accessor :value_pos_enum
 
-  def initialize(x, y, bet)
+  def initialize(x, y, bet, value_pos_enum = 2)
     @cards = []
     @x = x
     @y = y
     @bet = bet
     @outcome = :undecided
     @in_play = true
+    @value_pos_enum = value_pos_enum
   end
 
   def x=(value)
@@ -75,12 +77,24 @@ class Hand
   end
 
   def primitives
+
+    case @value_pos_enum
+      when 0
+        value_pos = @y - 135
+      when 1
+        value_pos = @y + 64
+      when 2
+        value_pos = @y + 135 + 24
+      else
+        value_pos = @y
+    end
+
     [
       @cards.flat_map { |c| c.primitives },
       {
         primitive_marker: :label,
         x: @x,
-        y: @y + 64,
+        y: value_pos,
         alignment_enum: 1,
         size_enum: 5,
         r: 255,

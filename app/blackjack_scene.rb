@@ -13,7 +13,7 @@ require_relative "hand"
       
       @players_hands = []
       @active_hand = nil
-      @dealers_hand = Hand.new(Grid.w / 2, Grid.h - 256, -1)
+      @dealers_hand = Hand.new(Grid.w / 2, Grid.h - 256, -1, 0)
       @bet = 10
       @phases = [
         :betting,
@@ -77,7 +77,6 @@ require_relative "hand"
           elsif @phase == :decision
             puts @active_hand.in_play
             unless @active_hand.in_play
-              puts "here"
               prev_active_hand = @players_hands.index(@active_hand)
               @active_hand = @players_hands[prev_active_hand + 1] 
             end
@@ -266,8 +265,11 @@ require_relative "hand"
           text: "#{@phase}",
           g: 255
         },
-        @dealers_hand.primitives
       ]
+
+      if @dealers_hand && @phase != :betting
+        all_primitives << @dealers_hand.primitives
+      end
 
       if !@players_hands.empty?
         @players_hands.each do |h|

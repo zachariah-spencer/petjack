@@ -1,14 +1,16 @@
 class Card
   attr :suit, :value, :face, :x, :y
 
-  def initialize(suit, value)
-    @x = Numeric.rand(100..1180)
-    @y = Numeric.rand(100..620)
-    @w = 128
-    @h = 256
+  def initialize(suit, value, face_sprite_path)
+    @x = 0
+    @y = 0
+    @w = 88
+    @h = 128
     @suit = suit
     @value = value
     @face = false
+    @face_sprite_path = face_sprite_path
+    @back_sprite_path = "sprites/cards/back01.png"
   end
 
   def flip
@@ -21,13 +23,13 @@ class Card
     else
       case @value
       when 1
-        "Ace"
+        "A"
       when 11
-        "Jack"
+        "J"
       when 12
-        "Queen"
+        "Q"
       when 13
-        "King"
+        "K"
       end
     end
   end
@@ -51,50 +53,28 @@ class Card
 
   def primitives
     all_primitives = []
-
-    all_primitives << {
-      primitive_marker: :solid,
-      x: @x,
-      y: @y,
-      w: @w,
-      h: @h,
-      anchor_x: 0.5,
-      anchor_y: 0.5,
-      r: 0,
-      g: 150,
-      b: 150,
-      a: 200
-    }
     if @face
-        all_primitives << {
-          primitive_marker: :label,
-          x: @x,
-          y: @y,
-          alignment_enum: 1,
-          text: "#{value_string}",
-          size_enum: 3,
-          r: 255
-        }
-
-        all_primitives << {
-          primitive_marker: :label,
-          x: @x,
-          y: @y - 50,
-          alignment_enum: 1,
-          text: "#{@suit}",
-          size_enum: 3,
-          r: 255
-        }
+      all_primitives << {
+        primitive_marker: :sprite,
+        x: @x,
+        y: @y,
+        anchor_x: 0.5,
+        anchor_y: 0.5,
+        w: @w,
+        h: @h,
+        path: @face_sprite_path
+      }
     else
-        all_primitives << {
-          primitive_marker: :label,
-          x: @x,
-          y: @y,
-          alignment_enum: 1,
-          text: "Face Down",
-          size_enum: 3,
-          r: 255
-        }
+      all_primitives << {
+        primitive_marker: :sprite,
+        x: @x,
+        y: @y,
+        anchor_x: 0.5,
+        anchor_y: 0.5,
+        w: @w,
+        h: @h,
+        path: @back_sprite_path
+      }
     end
 
     all_primitives

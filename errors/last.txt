@@ -1,24 +1,22 @@
 * EXCEPTION:
-* ERROR: :primitives method missing on ~NilClass~.
+* ERROR: :args method missing on ~Card~.
 
-#+begin_src ~NilClass#inspect~
-nil
-#+end_src ~NilClass#inspect~
+#+begin_src ~Card#inspect~
+#<Card:0x7ff0d32531f0 @suit=:heart, @h=128, @x=560.0, @value=6, @back_sprite_path="sprites/cards/back01.png", @face=true, @w=88, @y=464, @face_sprite_path="sprites/cards/hearts_06.png">
+#+end_src ~Card#inspect~
 
-** Did you mean?
-Here's a list of methods that kind of look like :primitives.
-*** :primitive_marker
+
 
 The method named
-  :primitives
-doesn't exist on [NilClass, NilClassFalseClass].
+  :args
+doesn't exist on [Card, #<Class:#<Card:0x7ff0d32531f0>>].
 
 (suggestions above)
 ** Backtrace:
-*** app/hand.rb:79:in primitives
-*** app/hand.rb:79:in primitives
-*** app/blackjack_scene.rb:274:in primitives
-*** app/blackjack_scene.rb:273:in primitives
+*** app/card.rb:58:in primitives
+*** app/hand.rb:93:in primitives
+*** app/hand.rb:93:in primitives
+*** app/blackjack_scene.rb:271:in primitives
 *** app/root_scene.rb:98:in render
 *** app/root_scene.rb:51:in tick
 *** app/main.rb:10:in tick
