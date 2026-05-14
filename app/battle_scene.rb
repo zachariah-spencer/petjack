@@ -30,6 +30,7 @@ require_relative "scene"
 
         {
           primitive_marker: :label,
+          font: $font,
           x: Grid.w / 2,
           y: Grid.h - 30,
           alignment_enum: 1,

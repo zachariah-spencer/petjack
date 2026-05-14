@@ -44,6 +44,7 @@ require_relative "root_scene"
 
         {
           primitive_marker: :label,
+          font: $font,
           x: Grid.w / 2,
           y: Grid.h - 30,
           alignment_enum: 1,
@@ -56,6 +57,7 @@ require_relative "root_scene"
 
         {
           primitive_marker: :label,
+          font: $font,
           x: Grid.w / 2,
           y: Grid.h - 77,
           alignment_enum: 1,
@@ -68,6 +70,7 @@ require_relative "root_scene"
 
         {
           primitive_marker: :label,
+          font: $font,
           x: Grid.w / 2,
           y: Grid.h - 120,
           alignment_enum: 1,

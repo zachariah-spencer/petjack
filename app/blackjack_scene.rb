@@ -1,6 +1,7 @@
 require_relative "scene"
 require_relative "deck"
 require_relative "hand"
+require_relative "button"
 
 # the game scene has the same general flow as the level select scene
   # just a place holder for where the game would so up
@@ -14,6 +15,7 @@ require_relative "hand"
       @deal_delay = 15
       @dealing_started = false
       @deck = Deck.new(Grid.w - 100, Grid.h - 128)
+      @buttons = []
       @players_hands = []
       @active_hand = nil
       @dealers_hand = Hand.new(Grid.w / 2, Grid.h - 256, -1, 0)
@@ -27,6 +29,7 @@ require_relative "hand"
         :end_of_round
       ]
       @phase = :betting
+      build_buttons
     end
 
     def activate!
@@ -37,31 +40,17 @@ require_relative "hand"
       @tickables.values.each { |tickable| tickable.tick } unless @tickables.empty?
       @dealers_hand.tick if @dealers_hand
       @players_hands.each { |h| h.tick } unless @players_hands.empty?
+      @buttons.each { |button| button.tick(inputs) }
 
       if state.current_scene == id
-        if inputs.keyboard.key_down.e
-          state.next_scene = :home
-        end
+        leave_blackjack if inputs.keyboard.key_down.e
 
           if @phase == :betting
-            if inputs.keyboard.key_down.up
-              @bet = (@bet + 5).clamp(10, 100)
-            end
+            increase_bet if inputs.keyboard.key_down.up
 
-            if inputs.keyboard.key_down.down
-              @bet = (@bet - 5).clamp(10, 100)
-            end
+            decrease_bet if inputs.keyboard.key_down.down
 
-            if inputs.keyboard.key_down.space && @resetting_tick.elapsed_time >= 0.25.seconds
-              if $coins >= @bet
-                @players_hands.clear
-                @players_hands << Hand.new(Grid.w / 2, 100, @bet)
-                calc_hand_positions
-                @active_hand = @players_hands.first
-                @phase = :dealing
-                $coins -= @bet
-              end
-            end
+            start_round if inputs.keyboard.key_down.space
 
           
 
@@ -93,36 +82,10 @@ require_relative "hand"
               prev_active_hand = @players_hands.index(@active_hand)
               @active_hand = @players_hands[prev_active_hand + 1] 
             end
-            if inputs.keyboard.key_down.d && @active_hand.cards.size <= 2
-              # double down
-              @active_hand.add(@deck.draw)
-              calc_hand_positions
-              @active_hand.bet *= 2
-              calc_round_outcome
-              @active_hand.in_play = false
-            elsif inputs.keyboard.key_down.s
-              # two identical card values means you can split
-              if @active_hand.cards.size > 1 && @active_hand.cards[0].value == @active_hand.cards[1].value
-
-                # handle split
-                if $coins >= @bet
-                  $coins -= @bet
-                  new_hand = Hand.new(100, 100, @bet)
-                  new_hand.add(@active_hand.cards.delete_at(0))
-                  @players_hands << new_hand
-                  calc_hand_positions
-                end
-
-                
-                
-              end
-            elsif inputs.keyboard.key_down.enter
-              @active_hand.add(@deck.draw)
-              calc_hand_positions
-              calc_round_outcome
-            elsif inputs.keyboard.key_down.space
-              @active_hand.in_play = false
-            end
+            double_down if inputs.keyboard.key_down.d
+            split_hand if inputs.keyboard.key_down.s
+            hit if inputs.keyboard.key_down.enter
+            stand if inputs.keyboard.key_down.space
 
             hands_in_play = false
             @players_hands.each { |h| hands_in_play = true if h.in_play }
@@ -133,7 +96,7 @@ require_relative "hand"
           elsif @phase == :resolution
 
             unless @dealer_turn_started
-              unless @active_hand.outcome == :blackjack
+              if dealer_turn_needed?
                 start_dealer_turn
               else
                 @dealer_turn_started = true
@@ -183,23 +146,163 @@ require_relative "hand"
             end
 
           elsif @phase == :end_of_round
-            if inputs.keyboard.key_down.space
-              @bet = 10
-              @active_hand = nil
-              @resetting_tick = Kernel.tick_count
-              @dealers_hand.reset
-              @players_hands.each { |h| h.reset }
-              @deck.reshuffle
-              @dealing_started = false
-              @dealer_turn_started = false
-              @deal_queue.clear
-              @next_deal_at = 0
-              @phase = :betting
-            end
+            reset_round if inputs.keyboard.key_down.space
           end
 
         end
       end
+
+    def build_buttons
+      @buttons = [
+        Button.new(32, Grid.h - 80, 120, 44, "Exit", enabled_when: -> { can_leave_blackjack? }) { leave_blackjack },
+        Button.new(32, Grid.h - 140, 52, 44, "-", enabled_when: -> { can_decrease_bet? }) { decrease_bet },
+        Button.new(92, Grid.h - 140, 52, 44, "+", enabled_when: -> { can_increase_bet? }) { increase_bet },
+        Button.new(160, Grid.h - 140, 140, 44, "Deal", enabled_when: -> { can_start_round? }) { start_round },
+        Button.new(32, 32, 120, 44, "Hit", enabled_when: -> { can_hit? }) { hit },
+        Button.new(168, 32, 120, 44, "Stand", enabled_when: -> { can_stand? }) { stand },
+        Button.new(304, 32, 160, 44, "Double", enabled_when: -> { can_double_down? }) { double_down },
+        Button.new(480, 32, 120, 44, "Split", enabled_when: -> { can_split? }) { split_hand },
+        Button.new(Grid.w - 172, 32, 140, 44, "Next Round", enabled_when: -> { can_reset_round? }) { reset_round }
+      ]
+    end
+
+    def can_leave_blackjack?
+      accepts_input?
+    end
+
+    def can_change_bet?
+      accepts_input? &&
+        @phase == :betting &&
+        @resetting_tick.elapsed_time >= 0.25.seconds
+    end
+
+    def can_increase_bet?
+      can_change_bet? && @bet < 100
+    end
+
+    def can_decrease_bet?
+      can_change_bet? && @bet > 10
+    end
+
+    def can_start_round?
+      can_change_bet? && $coins >= @bet
+    end
+
+    def can_take_turn_actions?
+      accepts_input? &&
+        @phase == :decision &&
+        @active_hand &&
+        @active_hand.in_play
+    end
+
+    def can_hit?
+      can_take_turn_actions?
+    end
+
+    def can_stand?
+      can_take_turn_actions?
+    end
+
+    def can_double_down?
+      can_take_turn_actions? &&
+        @active_hand.cards.size <= 2 &&
+        $coins >= @active_hand.bet
+    end
+
+    def can_split?
+      can_take_turn_actions? &&
+        @active_hand.cards.size > 1 &&
+        @active_hand.cards[0].value == @active_hand.cards[1].value &&
+        $coins >= @active_hand.bet
+    end
+
+    def can_reset_round?
+      accepts_input? && @phase == :end_of_round
+    end
+
+    def dealer_turn_needed?
+      @players_hands.any? { |hand| hand.outcome == :undecided }
+    end
+
+    def leave_blackjack
+      return unless can_leave_blackjack?
+
+      state.next_scene = :home
+    end
+
+    def increase_bet
+      return unless can_increase_bet?
+
+      @bet = (@bet + 5).clamp(10, 100)
+    end
+
+    def decrease_bet
+      return unless can_decrease_bet?
+
+      @bet = (@bet - 5).clamp(10, 100)
+    end
+
+    def start_round
+      return unless can_start_round?
+
+      @players_hands.clear
+      @players_hands << Hand.new(Grid.w / 2, 100, @bet)
+      calc_hand_positions
+      @active_hand = @players_hands.first
+      @phase = :dealing
+      $coins -= @bet
+    end
+
+    def hit
+      return unless can_hit?
+
+      @active_hand.add(@deck.draw)
+      calc_hand_positions
+      calc_round_outcome
+    end
+
+    def stand
+      return unless can_stand?
+
+      @active_hand.in_play = false
+    end
+
+    def double_down
+      return unless can_double_down?
+
+      $coins -= @active_hand.bet
+      @active_hand.add(@deck.draw)
+      calc_hand_positions
+      @active_hand.bet *= 2
+      calc_round_outcome
+      @active_hand.in_play = false
+    end
+
+    def split_hand
+      return unless can_split?
+
+      $coins -= @active_hand.bet
+      new_hand = Hand.new(100, 100, @active_hand.bet)
+      new_hand.add(@active_hand.cards.delete_at(0))
+      @players_hands << new_hand
+      calc_hand_positions
+    end
+
+    def reset_round
+      return unless can_reset_round?
+
+      @bet = 10
+      @active_hand = nil
+      @resetting_tick = Kernel.tick_count
+      @dealers_hand.reset
+      @players_hands.each { |h| h.reset }
+      @deck.reshuffle
+      @dealing_started = false
+      @dealer_turn_started = false
+      @deal_queue.clear
+      @next_deal_at = 0
+      @phase = :betting
+    end
 
     def calc_round_outcome
       if @active_hand.total_value > 21
@@ -266,6 +369,7 @@ require_relative "hand"
         @deck.primitives,
         {
           primitive_marker: :label,
+          font: $font,
           x: Grid.w / 2,
           y: Grid.h - 30,
           alignment_enum: 1,
@@ -277,6 +381,7 @@ require_relative "hand"
         },
         {
           primitive_marker: :label,
+          font: $font,
           x: 40,
           y: Grid.h - 30,
           alignment_enum: 0,
@@ -288,6 +393,7 @@ require_relative "hand"
         },
         {
           primitive_marker: :label,
+          font: $font,
           x: Grid.w - 40,
           y: Grid.h - 30,
           alignment_enum: 2,
@@ -299,6 +405,7 @@ require_relative "hand"
         },
         {
           primitive_marker: :label,
+          font: $font,
           x: Grid.w / 2,
           y: Grid.h - 100,
           alignment_enum: 1,
@@ -310,14 +417,15 @@ require_relative "hand"
         },
 
         
-
-        {
-          primitive_marker: :label,
-          x: 50,
-          y: Grid.h / 2,
-          text: "#{@phase}",
-          g: 255
-        },
+        # debug phase watch
+        # {
+        #   primitive_marker: :label,
+        #   font: $font,
+        #   x: 50,
+        #   y: Grid.h / 2,
+        #   text: "#{@phase}",
+        #   g: 255
+        # },
       ]
 
       if @dealers_hand && @phase != :betting
@@ -334,19 +442,7 @@ require_relative "hand"
         end
       end
 
-      if @phase == :betting && @resetting_tick && @resetting_tick.elapsed_time >= 0.25.seconds
-        all_primitives << {
-          primitive_marker: :label,
-          x: Grid.w / 2,
-          y: Grid.h / 2,
-          alignment_enum: 1,
-          size_enum: 15,
-          r: 255,
-          g: 0,
-          b: 0,
-          text: "Press SPACE to Play"
-        }
-      end
+      @buttons.each { |b| all_primitives << b.primitives }
 
       all_primitives
     end

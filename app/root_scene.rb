@@ -27,6 +27,7 @@ require_relative "battle_scene"
       @previous_scene_rect = previous_scene_start_rect
 
       # game variables
+      $font = "fonts/merriweather.ttf"
       $coins = 50
       
     end
@@ -106,11 +107,11 @@ require_relative "battle_scene"
 
       outputs.primitives << {
         primitive_marker: :label,
+        font: $font,
         x: 40,
         y: 40,
         text: "Player Coins: #{$coins}",
-        b: 255,
-        g: 255,
+        r: 255,
       }
 
       # debug primitives to visualize control locations

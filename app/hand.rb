@@ -118,6 +118,7 @@ def score_label_primitive
 
   {
     primitive_marker: :label,
+    font: $font,
     x: @x,
     y: value_pos,
     alignment_enum: 1,
