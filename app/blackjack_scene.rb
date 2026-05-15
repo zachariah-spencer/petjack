@@ -20,10 +20,13 @@ require_relative "button"
       @active_hand = nil
       @dealers_hand = Hand.new(Grid.w / 2, Grid.h - 256, -1, 0)
       @bet = 10
+      @insurance_bet = 0
+      @insurance_offered = false
       @resetting_tick = 0
       @phases = [
         :betting,
         :dealing,
+        :insurance,
         :decision,
         :resolution,
         :end_of_round
@@ -67,13 +70,19 @@ require_relative "button"
             flush_one_queued_deal
             
             if @dealing_started && @deal_queue.empty?
-              if @active_hand.total_value != 21
+              if can_offer_insurance?
+                @phase = :insurance
+              elsif @active_hand.total_value != 21
                 @phase = :decision
               else
                 @active_hand.outcome = :blackjack
                 @phase = :resolution
               end
             end
+
+          elsif @phase == :insurance
+            take_insurance if inputs.keyboard.key_down.y
+            decline_insurance if inputs.keyboard.key_down.n
 
 
 
@@ -107,6 +116,7 @@ require_relative "button"
 
             if @dealer_turn_started && @deal_queue.empty?
               @dealer_turn_started = false
+              reveal_dealer_cards
 
               @players_hands.each do |h|
                 next unless h.outcome == :undecided
@@ -130,17 +140,8 @@ require_relative "button"
                 end
               end
 
-              @players_hands.each do |h|
-                if h.outcome == :won
-                  $coins += h.bet + h.bet
-                end
-                if h.outcome == :push
-                  $coins += h.bet
-                end
-                if h.outcome == :blackjack
-                  $coins += h.bet + (h.bet * (3/2))
-                end
-              end
+              settle_main_bets
+              settle_insurance
 
               @phase = :end_of_round
             end
@@ -157,31 +158,28 @@ require_relative "button"
         Button.new(Grid.w - 32 - 8, Grid.h - 32 - 8, 32, 32, 
         sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button-arrow-right.png", 
         sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-arrow-right-pressed.png", 
-        enabled_when: -> { can_leave_blackjack? }) { leave_blackjack },
+        enabled_when: -> { true }) { leave_blackjack },
 
-        Button.new(32, Grid.h - 140, 52, 44, "-", enabled_when: -> { can_decrease_bet? }) { decrease_bet },
-        Button.new(92, Grid.h - 140, 52, 44, "+", enabled_when: -> { can_increase_bet? }) { increase_bet },
-        Button.new(160, Grid.h - 140, 140, 44, "Deal", enabled_when: -> { can_start_round? }) { start_round },
-        Button.new(32, 32, 120, 44, "Hit", enabled_when: -> { can_hit? }) { hit },
-        Button.new(168, 32, 120, 44, "Stand", enabled_when: -> { can_stand? }) { stand },
-        Button.new(304, 32, 160, 44, "Double", enabled_when: -> { can_double_down? }) { double_down },
-        Button.new(480, 32, 120, 44, "Split", enabled_when: -> { can_split? }) { split_hand },
-        Button.new(Grid.w - 172, 32, 140, 44, "Next Round", enabled_when: -> { can_reset_round? }) { reset_round }
+        Button.new(Grid.w / 2 - 52 - 10, Grid.h / 2 - 50 - 44, 52, 44, "-", enabled_when: -> { can_decrease_bet? }) { decrease_bet },
+        Button.new(Grid.w / 2 + 10, Grid.h / 2 - 50 - 44, 52, 44, "+", enabled_when: -> { can_increase_bet? }) { increase_bet },
+        Button.new(Grid.w / 2 - 100, Grid.h / 2 - 40, 200, 80, "Deal", enabled_when: -> { can_start_round? }) { start_round },
+        Button.new(32, 32 + 20 + (70 * 0), 120, 44, "Hit", enabled_when: -> { can_hit? }) { hit },
+        Button.new(32, 32 + 20 + (70 * 1), 120, 44, "Stand", enabled_when: -> { can_stand? }) { stand },
+        Button.new(32, 32 + 20 + (70 * 2), 120, 44, "Double", enabled_when: -> { can_double_down? }) { double_down },
+        Button.new(42, 32 + 20 + (70 * 3), 120, 44, "Split", enabled_when: -> { can_split? }) { split_hand },
+        Button.new(Grid.w - 172, 32, 140, 44, "Next Round", enabled_when: -> { can_reset_round? }) { reset_round },
+        Button.new(Grid.w / 2 - 150, Grid.h / 2 - 14, 120, 40, "Yes", enabled_when: -> { can_take_insurance? }) { take_insurance },
+        Button.new(Grid.w / 2 + 10, Grid.h / 2 - 14, 120, 40, "No", enabled_when: -> { can_decline_insurance? }) { decline_insurance }
       ]
     end
 
-    def can_leave_blackjack?
-      accepts_input?
-    end
-
     def can_change_bet?
-      accepts_input? &&
         @phase == :betting &&
         @resetting_tick.elapsed_time >= 0.25.seconds
     end
 
     def can_increase_bet?
-      can_change_bet? && @bet < 100
+      can_change_bet? && @bet < 100 && @bet < ($coins || 0)
     end
 
     def can_decrease_bet?
@@ -193,10 +191,30 @@ require_relative "button"
     end
 
     def can_take_turn_actions?
-      accepts_input? &&
         @phase == :decision &&
         @active_hand &&
         @active_hand.in_play
+    end
+
+    def can_offer_insurance?
+      return false unless @phase == :dealing
+      return false if @insurance_offered
+
+      dealer_upcard = @dealers_hand.cards.find(&:face)
+      dealer_upcard && dealer_upcard.value == 1
+    end
+
+    def insurance_wager
+      [(@bet / 2), ($coins || 0)].min
+    end
+
+    def can_take_insurance?
+        @phase == :insurance &&
+        insurance_wager > 0
+    end
+
+    def can_decline_insurance?
+      @phase == :insurance
     end
 
     def can_hit?
@@ -221,7 +239,7 @@ require_relative "button"
     end
 
     def can_reset_round?
-      accepts_input? && @phase == :end_of_round
+      @phase == :end_of_round
     end
 
     def dealer_turn_needed?
@@ -229,7 +247,6 @@ require_relative "button"
     end
 
     def leave_blackjack
-      return unless can_leave_blackjack?
 
       state.next_scene = :home
     end
@@ -271,6 +288,21 @@ require_relative "button"
       @active_hand.in_play = false
     end
 
+    def take_insurance
+      return unless can_take_insurance?
+
+      @insurance_bet = insurance_wager
+      $coins -= @insurance_bet
+      finish_insurance_offer
+    end
+
+    def decline_insurance
+      return unless can_decline_insurance?
+
+      @insurance_bet = 0
+      finish_insurance_offer
+    end
+
     def double_down
       return unless can_double_down?
 
@@ -296,6 +328,8 @@ require_relative "button"
       return unless can_reset_round?
 
       @bet = 10
+      @insurance_bet = 0
+      @insurance_offered = false
       @active_hand = nil
       @resetting_tick = Kernel.tick_count
       @dealers_hand.reset
@@ -339,6 +373,75 @@ require_relative "button"
       @deal_queue << block
     end
 
+    def dealer_blackjack?
+      total = 0
+      aces = 0
+
+      @dealers_hand.cards.each do |card|
+        total += card.actual_value
+        aces += 1 if card.value == 1
+      end
+
+      while total > 21 && aces > 0
+        total -= 10
+        aces -= 1
+      end
+
+      total == 21 && @dealers_hand.cards.size <= 2
+    end
+
+    def reveal_dealer_cards
+      @dealers_hand.cards.each { |card| card.face = true }
+    end
+
+    def settle_main_bets
+      @players_hands.each do |h|
+        if h.outcome == :won
+          $coins += h.bet + h.bet
+        end
+        if h.outcome == :push
+          $coins += h.bet
+        end
+        if h.outcome == :blackjack
+          $coins += h.bet + (h.bet * 3 / 2.0)
+        end
+      end
+    end
+
+    def settle_insurance
+      @insurance_bet ||= 0
+      return if @insurance_bet <= 0
+
+      $coins += @insurance_bet * 3 if dealer_blackjack?
+      @insurance_bet = 0
+    end
+
+    def finish_insurance_offer
+      @insurance_offered = true
+
+      if dealer_blackjack?
+        reveal_dealer_cards
+        settle_insurance
+
+        @players_hands.each do |h|
+          h.outcome =
+            if h.total_value == 21 && h.cards.size <= 2
+              :push
+            else
+              :lost
+            end
+        end
+
+        settle_main_bets
+        @phase = :end_of_round
+      elsif @active_hand.total_value != 21
+        @phase = :decision
+      else
+        @active_hand.outcome = :blackjack
+        @phase = :resolution
+      end
+    end
+
     def flush_one_queued_deal
       return if @deal_queue.empty?
       return if Kernel.tick_count < @next_deal_at
@@ -359,7 +462,10 @@ require_relative "button"
     end
 
     def queue_next_dealer_draw_if_needed
-      return if @dealers_hand.total_value >= 17
+      dealer_total = @dealers_hand.total_value
+
+      return if dealer_total > 17
+      return if dealer_total == 17 && !@dealers_hand.soft_total?
 
       @deal_queue << -> do
         @dealers_hand.add(@deck.draw)
@@ -419,7 +525,6 @@ require_relative "button"
           b: 0,
           text: "Bet: #{@bet}"
         },
-
         
         # debug phase watch
         # {
@@ -446,8 +551,62 @@ require_relative "button"
         end
       end
 
+      all_primitives << insurance_prompt_primitives
+
       @buttons.each { |b| all_primitives << b.primitives }
 
       all_primitives
+    end
+
+    def insurance_prompt_primitives
+      return [] unless @phase == :insurance
+
+      [
+        {
+          x: Grid.w / 2 - 220,
+          y: Grid.h / 2 - 24,
+          w: 440,
+          h: 150,
+          primitive_marker: :solid,
+          r: 20,
+          g: 20,
+          b: 20,
+          a: 220
+        },
+        {
+          x: Grid.w / 2 - 220,
+          y: Grid.h / 2 - 24,
+          w: 440,
+          h: 150,
+          primitive_marker: :border,
+          r: 255,
+          g: 255,
+          b: 255
+        },
+        {
+          primitive_marker: :label,
+          font: $font,
+          x: Grid.w / 2,
+          y: Grid.h / 2 + 92,
+          alignment_enum: 1,
+          size_enum: 5,
+          r: 255,
+          g: 255,
+          b: 255,
+          text: "Dealer is showing an ace"
+        },
+        {
+          primitive_marker: :label,
+          font: $font,
+          x: Grid.w / 2,
+          y: Grid.h / 2 + 60,
+          alignment_enum: 1,
+          size_enum: 2,
+          r: 255,
+          g: 255,
+          b: 255,
+          text: "Take insurance for #{insurance_wager} coins?"
+        },
+      ]
     end
   end

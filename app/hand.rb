@@ -97,35 +97,54 @@ class Hand
     sum
   end
 
+  def soft_total?
+    total = 0
+    aces = 0
+
+    @cards.each do |c|
+      next unless c.face
+
+      total += c.actual_value
+      aces += 1 if c.value == 1
+    end
+
+    while total > 21 && aces > 0
+      total -= 10
+      aces -= 1
+    end
+
+    aces > 0
+  end
+
   def primitives
     [
       @cards.flat_map { |c| c.primitives },
     ]
   end
-end
 
-def score_label_primitive
-  case @value_pos_enum
-    when 0
-      value_pos = @y - 135
-    when 1
-      value_pos = @y + 64
-    when 2
-      value_pos = @y + 135 + 24
-    else
-      value_pos = @y
+  def score_label_primitive
+    case @value_pos_enum
+      when 0
+        value_pos = @y - 135
+      when 1
+        value_pos = @y + 64
+      when 2
+        value_pos = @y + 135 + 24
+      else
+        value_pos = @y
+    end
+
+    {
+      primitive_marker: :label,
+      font: $font,
+      x: @x,
+      y: value_pos,
+      alignment_enum: 1,
+      size_enum: 5,
+      r: 255,
+      g: 0,
+      b: 0,
+      text: "#{total_value}"
+    }
   end
-
-  {
-    primitive_marker: :label,
-    font: $font,
-    x: @x,
-    y: value_pos,
-    alignment_enum: 1,
-    size_enum: 5,
-    r: 255,
-    g: 0,
-    b: 0,
-    text: "#{total_value}"
-  }
 end

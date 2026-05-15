@@ -2,8 +2,8 @@ require_relative "scene"
 
 # the game scene has the same general flow as the level select scene
   # just a place holder for where the game would so up
-  class BattleScene < Scene
-    def id = :battle
+  class MultiplayerScene < Scene
+    def id = :multiplayer
 
     def initialize
       @tickables = {}

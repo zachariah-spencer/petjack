@@ -10,6 +10,12 @@ require_relative "battle_scene"
     attr_gtk
 
     def initialize args
+      self.args = args
+
+      # globals
+      $font = "fonts/merriweather.ttf"
+      $coins = 50
+      
       EventBus.new
       # construct all the scenes and set the initial scene to Home scene
       @all_scenes = {
@@ -21,14 +27,14 @@ require_relative "battle_scene"
       args.state.current_scene_at = Kernel.tick_count
       @all_scenes[args.state.current_scene].activate_at = Kernel.tick_count
       @all_scenes[args.state.current_scene].deactivate_at = nil
+      args.state.previous_scene = nil
 
       # these instance variables are used to control the scene transition animation
       @current_scene_rect = current_scene_start_rect
       @previous_scene_rect = previous_scene_start_rect
 
-      # game variables
-      $font = "fonts/merriweather.ttf"
-      $coins = 50
+      
+      
       
     end
 
@@ -145,30 +151,49 @@ require_relative "battle_scene"
     end
 
     # these represent the start and end locations for the scene
-    # transitions (the key value in these rects is the y value, which
-    # creates a vertical wipe transition, but you can modify these to
-    # create different transitions)
+    # transitions. The horizontal direction is determined by the
+    # previous/current scene pair so each route can slide in from a
+    # different side.
     def current_scene_end_rect
       { x: 0, y: 0, w: Grid.w, h: Grid.h }
     end
 
     def current_scene_start_rect
-      { x: 0, y: -Grid.h, w: Grid.w, h: Grid.h }
+      return current_scene_end_rect unless transitioning_between_scenes?
+
+      { x: transition_direction * Grid.w, y: 0, w: Grid.w, h: Grid.h }
     end
 
     def previous_scene_end_rect
-      { x: 0, y: Grid.h, w: Grid.w, h: Grid.h }
+      return previous_scene_start_rect unless transitioning_between_scenes?
+
+      { x: -transition_direction * Grid.w, y: 0, w: Grid.w, h: Grid.h }
     end
 
     def previous_scene_start_rect
       { x: 0, y: 0, w: Grid.w, h: Grid.h }
     end
 
+    def transition_direction
+      case [state.previous_scene, state.current_scene]
+      when [:home, :blackjack], [:multiplayer, :home]
+        -1
+      when [:blackjack, :home], [:home, :multiplayer]
+        1
+      else
+        1
+      end
+    end
+
+    def transitioning_between_scenes?
+      !state.previous_scene.nil?
+    end
+
     # this is the easing function that gives us the percentage for how
     # far along the scene transition animation is, which is used in the
     # current_scene_rect and previous_scene_rect functions to return the
     # appropriate rect for the current frame
-    def current_scene_rect_prec
+    def current_scene_rect_perc
       Easing.smooth_stop(start_at: state.current_scene_at,
                          duration: 15,
                          tick_count: Kernel.tick_count,
@@ -186,7 +211,7 @@ require_relative "battle_scene"
     # percentage between the start and end rects for the current scene
     # transition animation
     def current_scene_rect
-      Geometry.lerp_rect(current_scene_start_rect, current_scene_end_rect, current_scene_rect_prec)
+      Geometry.lerp_rect(current_scene_start_rect, current_scene_end_rect, current_scene_rect_perc)
     end
 
     def previous_scene_rect
