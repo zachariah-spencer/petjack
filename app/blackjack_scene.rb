@@ -247,7 +247,7 @@ require_relative "button"
     end
 
     def leave_blackjack
-
+      return unless accepts_input?
       state.next_scene = :home
     end
 

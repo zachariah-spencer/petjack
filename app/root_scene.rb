@@ -2,7 +2,7 @@ require_relative "event_bus"
 require_relative "scene"
 require_relative "home_scene"
 require_relative "blackjack_scene"
-require_relative "battle_scene"
+require_relative "multiplayer_scene"
 
 
 # this is the root scene that controls the orchestration of the UI
@@ -21,7 +21,7 @@ require_relative "battle_scene"
       @all_scenes = {
         home: HomeScene.new,
         blackjack: BlackjackScene.new,
-        battle: BattleScene.new
+        multiplayer: MultiplayerScene.new
       }
       args.state.current_scene = :home
       args.state.current_scene_at = Kernel.tick_count

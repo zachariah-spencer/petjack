@@ -36,14 +36,12 @@ require_relative "button"
     end
 
     def go_to_blackjack
-      return unless can_leave_home?
-
+      return unless accepts_input?
       state.next_scene = :blackjack
     end
 
     def go_to_battle
-      return unless can_leave_home?
-
+      return unless accepts_input?
       state.next_scene = :multiplayer
     end
 

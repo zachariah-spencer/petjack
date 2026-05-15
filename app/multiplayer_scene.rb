@@ -7,14 +7,30 @@ require_relative "scene"
 
     def initialize
       @tickables = {}
+      build_buttons
     end
 
     def activate!
 
     end
 
+    def build_buttons
+      @buttons = [
+        Button.new(8, Grid.h - 32 - 8, 32, 32, 
+        sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button-arrow-left.png", 
+        sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-arrow-left-pressed.png", 
+        enabled_when: -> { true }) { leave_multiplayer },
+      ]
+    end
+
+    def leave_multiplayer
+      return unless accepts_input?
+      state.next_scene = :home
+    end
+
     def tick
       @tickables.values.each { |tickable| tickable.tick } unless @tickables.empty?
+      @buttons.each { |b| b.tick(inputs) }
 
       if inputs.keyboard.key_down.space
         puts "Pressed input in blackjack scene"
@@ -26,7 +42,7 @@ require_relative "scene"
     end
 
     def primitives
-      [
+      all_primitives = [
 
         {
           primitive_marker: :label,
@@ -38,8 +54,11 @@ require_relative "scene"
           r: 255,
           g: 0,
           b: 0,
-          text: "Battle"
+          text: "Multiplayer"
         },
       ]
+      @buttons.each { |b| all_primitives << b.primitives }
+
+      all_primitives
     end
   end
