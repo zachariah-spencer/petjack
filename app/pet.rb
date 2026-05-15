@@ -8,6 +8,8 @@ class Pet
     @w = 64
     @h = 64
     @color = { r: 200, g: 0, b: 0 }
+    @held = false
+    @held_pointer = nil
 
     # physics vars
     @jump_velocity = Numeric.rand(10..20)
@@ -17,6 +19,7 @@ class Pet
     @dy = 0
     @target_dx = 0
     @target_dy = 0
+    @frozen_until = 0
 
     # AI vars
     @state = :idle
@@ -44,33 +47,51 @@ class Pet
     }
   end
 
-  def tick
+  def tick(inputs = nil)
+    handle_petting_input(inputs)
 
-    # handle AI
-    if @state_timer.elapsed_time >= @state_change_time.seconds
+    if frozen?
+      @dx = 0
+      @target_dx = 0
+      @state = :idle
       @state_timer = Kernel.tick_count
-      @state_change_time = Numeric.rand(1..5)
-
-      if @state == :idle
-        @state = :moving
-
-        direction = [-1, 1].sample
-        speed = Numeric.rand(2..10)
-
-        @target_dx = direction * speed
-
-      elsif @state == :moving
-        @state = :idle
-        @target_dx = 0
-      end
-    end
-
-    if @jump_timer.elapsed_time >= @jump_time.seconds
       @jump_timer = Kernel.tick_count
-      @jump_time = Numeric.rand(1..8)
-      @jump_height = Numeric.rand(10..30)
+    elsif @held
+      @dx = @dx.lerp(0, 0.35)
+      @dy = @dy.lerp(0, 0.35)
+      @target_dx = 0
+      @target_dy = 0
+      @state = :idle
+      @state_timer = Kernel.tick_count
+      @jump_timer = Kernel.tick_count
+      return
+    else
+      # handle AI
+      if @state_timer.elapsed_time >= @state_change_time.seconds
+        @state_timer = Kernel.tick_count
+        @state_change_time = Numeric.rand(1..5)
 
-      @dy = @jump_velocity
+        if @state == :idle
+          @state = :moving
+
+          direction = [-1, 1].sample
+          speed = Numeric.rand(2..10)
+
+          @target_dx = direction * speed
+
+        elsif @state == :moving
+          @state = :idle
+          @target_dx = 0
+        end
+      end
+
+      if @jump_timer.elapsed_time >= @jump_time.seconds
+        @jump_timer = Kernel.tick_count
+        @jump_time = Numeric.rand(1..8)
+        @jump_height = Numeric.rand(10..30)
+
+        @dy = @jump_velocity
+      end
     end
 
     # apply physics
@@ -103,6 +124,64 @@ class Pet
       @target_dy = 0
     end
 
+  end
+
+  def freeze!
+    @frozen_until = Kernel.tick_count + 60
+  end
+
+  def frozen?
+    Kernel.tick_count < @frozen_until
+  end
+
+  def handle_petting_input(inputs)
+    pointer = active_pointer(inputs)
+
+    if pointer
+      if @held
+        @held_pointer = pointer
+      elsif inside?(pointer)
+        @held = true
+        @held_pointer = pointer
+      end
+    else
+      @held = false
+      @held_pointer = nil
+    end
+  end
+
+  def active_pointer(inputs)
+    return nil unless inputs
+
+    mouse = inputs.mouse
+    return mouse if mouse&.button_left
+
+    [inputs.respond_to?(:finger_one) ? inputs.finger_one : nil,
+     inputs.respond_to?(:finger_two) ? inputs.finger_two : nil].each do |finger|
+      next unless finger
+      next unless finger_down?(finger)
+
+      return finger
+    end
+
+    nil
+  end
+
+  def finger_down?(finger)
+    if finger.respond_to?(:down)
+      finger.down
+    elsif finger.respond_to?(:touch)
+      finger.touch
+    elsif finger.respond_to?(:pressed)
+      finger.pressed
+    else
+      finger.x && finger.y
+    end
+  end
+
+  def inside?(point)
+    point.x >= @x && point.x <= @x + @w &&
+      point.y >= @y && point.y <= @y + @h
   end
 
   def level_up()
@@ -142,12 +221,31 @@ class Pet
   end
 
   def draw
+    jiggle = Math.sin(Kernel.tick_count * 0.1)
+    petting_pulse = Math.sin(Kernel.tick_count * 0.25)
+    visual_x = @x
+    visual_y = @y
+    visual_w = @w
+    visual_h = @h
+
+    if frozen?
+      # Hide idle jiggle while active movement is paused.
+    elsif @held
+      visual_x -= 3 + petting_pulse.abs * 2
+      visual_y -= 1 - petting_pulse.abs
+      visual_w += 6 + petting_pulse.abs * 4
+      visual_h -= 2 + petting_pulse.abs * 2
+    else
+      visual_x += jiggle * 1.5
+      # visual_y += Math.cos(Kernel.tick_count * 0.21) * 1.0
+    end
+
     {
       primitive_marker: :solid,
-      x: @x,
-      y: @y,
-      w: @w,
-      h: @h,
+      x: visual_x,
+      y: visual_y,
+      w: visual_w,
+      h: visual_h,
       r: @color[:r],
       g: @color[:g],
       b: @color[:b]

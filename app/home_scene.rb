@@ -9,6 +9,7 @@ require_relative "button"
     KEYBOARD_BUTTON_W = 72
     KEYBOARD_BUTTON_H = 56
     KEYBOARD_BUTTON_GAP = 10
+    QUICK_TAP_MAX_TICKS = 15
     KEYBOARD_ROWS = [
       %w[Q W E R T Y U I O P],
       %w[A S D F G H J K L],
@@ -27,6 +28,7 @@ require_relative "button"
       build_buttons
       build_name_keyboard
       reset_name_prompt
+      reset_screen_press
 
       @tickables[@pet] = @pet
     end
@@ -96,7 +98,7 @@ require_relative "button"
     end
 
     def tick
-      @tickables.values.each { |tickable| tickable.tick } unless @tickables.empty?
+      @tickables.values.each { |tickable| tickable.tick(inputs) } unless @tickables.empty?
 
       if state.current_scene == id
         if naming_pet?
@@ -105,6 +107,7 @@ require_relative "button"
         end
 
         @buttons.each { |b| b.tick(inputs) }
+        handle_screen_tap
 
         if inputs.keyboard.key_down.q
           state.next_scene = :blackjack
@@ -123,6 +126,43 @@ require_relative "button"
 
     def naming_pet?
       @naming_pet
+    end
+
+    def handle_screen_tap
+      mouse = inputs.mouse
+
+      if mouse.button_left
+        unless @screen_press_started_at
+          @screen_press_started_at = Kernel.tick_count
+          @screen_press_started_on_pet = @pet.inside?(mouse)
+          @screen_press_started_on_button = screen_button_at?(mouse)
+        end
+
+        return
+      end
+
+      if @screen_press_started_at
+        press_duration = @screen_press_started_at ? Kernel.tick_count - @screen_press_started_at : 0
+        started_on_pet = @screen_press_started_on_pet
+        started_on_button = @screen_press_started_on_button
+        reset_screen_press
+
+        return if press_duration > QUICK_TAP_MAX_TICKS
+        return if started_on_pet || started_on_button
+        return if @pet.inside?(mouse) || screen_button_at?(mouse)
+
+        @pet.freeze!
+      end
+    end
+
+    def reset_screen_press
+      @screen_press_started_at = nil
+      @screen_press_started_on_pet = false
+      @screen_press_started_on_button = false
+    end
+
+    def screen_button_at?(point)
+      @buttons.any? { |button| button.enabled? && point.inside_rect?(button.rect) }
     end
 
     def handle_name_input
