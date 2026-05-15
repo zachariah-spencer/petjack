@@ -1,5 +1,12 @@
 class Pet
-  attr_reader :level, :name, :coins, :coins_needed, :coins, :coins_needed
+  attr_reader :level, :name, :coins, :coins_needed, :rebirths
+
+  BASE_LEVEL_COST = 7.0
+  LEVEL_COST_MULTIPLIER = 2.3
+  STARTING_HATCH_LEVEL = 10
+  HATCH_LEVEL_MULTIPLIER = 1.5
+  REBIRTH_COST_REDUCTION = 0.05
+  MIN_COST_MULTIPLIER = 0.05
 
   def initialize
     # core render vars
@@ -32,19 +39,9 @@ class Pet
     @name = ""
     @level = 1
     @coins = 0
-    @coins_needed = 10
-    @level_chart = {
-      1 => 10,
-      2 => 20,
-      3 => 35,
-      4 => 50,
-      5 => 75,
-      6 => 110,
-      7 => 150,
-      8 => 200,
-      9 => 250,
-      10 => 300
-    }
+    @rebirths = 0
+    @hatch_level = STARTING_HATCH_LEVEL
+    @coins_needed = cost_for_level(@level)
   end
 
   def tick(inputs = nil)
@@ -188,12 +185,43 @@ class Pet
     @level += 1
     @coins -= @coins_needed
 
-    if @level_chart[@level]
-      @coins_needed = @level_chart[@level]
-    else
-      @coins_needed = 300
-    end
+    update_coins_needed
+    update_color
+  end
 
+  def hatch!
+    return unless can_hatch?
+
+    previous_hatch_level = @hatch_level
+    @rebirths += 1
+    @hatch_level = (previous_hatch_level * HATCH_LEVEL_MULTIPLIER).ceil
+    @level = 1
+    @coins = 0
+    update_coins_needed
+    update_color
+  end
+
+  def can_hatch?
+    @level >= @hatch_level
+  end
+
+  def update_coins_needed
+    @coins_needed = cost_for_level(@level)
+  end
+
+  def cost_for_level(level)
+    (base_cost_for_level(level) * cost_multiplier).ceil
+  end
+
+  def base_cost_for_level(level)
+    (level * (BASE_LEVEL_COST + level * LEVEL_COST_MULTIPLIER)).ceil
+  end
+
+  def cost_multiplier
+    [1.0 - (@rebirths * REBIRTH_COST_REDUCTION), MIN_COST_MULTIPLIER].max
+  end
+
+  def update_color
     case @level
     when 1
       @color = { r: 255, g: 0, b: 0 }
@@ -210,7 +238,7 @@ class Pet
 
   def coins=(new_coins)
     @coins = new_coins
-    if @coins >= @coins_needed
+    while @coins >= @coins_needed
       level_up
     end
   end

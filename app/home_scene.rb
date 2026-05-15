@@ -53,6 +53,13 @@ require_relative "button"
         sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button-arrow-left.png", 
         sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-arrow-left-pressed.png", 
         enabled_when: -> { true }) { go_to_blackjack },
+
+        Button.new(Grid.w / 2 - 96, 92, 192, 48,
+        "Hatch",
+        sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png",
+        sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png",
+        enabled_when: -> { @pet.can_hatch? },
+        font_size_enum: 4) { hatch_pet },
       ]
     end
 
@@ -97,6 +104,12 @@ require_relative "button"
       state.next_scene = :multiplayer
     end
 
+    def hatch_pet
+      return unless accepts_input?
+
+      @pet.hatch!
+    end
+
     def tick
       @tickables.values.each { |tickable| tickable.tick(inputs) } unless @tickables.empty?
 
@@ -117,9 +130,9 @@ require_relative "button"
           state.next_scene = :multiplayer
         end
 
-        if inputs.keyboard.key_down.space && $coins > 0
-          @pet.coins = @pet.coins + 1
-          $coins -= 1
+        if inputs.keyboard.key_down.space && $coins > 9
+          @pet.coins = @pet.coins + 10
+          $coins -= 10
         end
       end
     end
@@ -250,6 +263,19 @@ require_relative "button"
           g: 0,
           b: 0,
           text: "Coins Eaten: #{@pet.coins} / #{@pet.coins_needed}"
+        },
+
+        {
+          primitive_marker: :label,
+          font: $font,
+          x: Grid.w / 2,
+          y: Grid.h - 158,
+          alignment_enum: 1,
+          size_enum: 5,
+          r: 255,
+          g: 0,
+          b: 0,
+          text: "Rebirths: #{@pet.rebirths}"
         }
       ]
 

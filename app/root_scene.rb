@@ -14,7 +14,7 @@ require_relative "multiplayer_scene"
 
       # globals
       $font = "fonts/merriweather_bold.ttf"
-      $coins = 50
+      $coins = 5000
       
       EventBus.new
       # construct all the scenes and set the initial scene to Home scene

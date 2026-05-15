@@ -1,9 +1,11 @@
 * EXCEPTION: comparison of Integer with NilClass failed
 ** Backtrace:
-*** app/pet.rb:139:in frozen?
-*** app/pet.rb:53:in tick
-*** app/home_scene.rb:99:in tick
-*** app/home_scene.rb:99:in tick
+*** app/pet.rb:216:in can_hatch?
+*** app/home_scene.rb:61:in build_buttons
+*** app/button.rb:29:in enabled?
+*** app/button.rb:33:in tick
+*** app/home_scene.rb:122:in tick
+*** app/home_scene.rb:122:in tick
 *** app/root_scene.rb:82:in calc
 *** app/root_scene.rb:54:in tick
 *** app/main.rb:10:in tick

@@ -56,6 +56,19 @@ require_relative "scene"
           b: 0,
           text: "Multiplayer"
         },
+
+        {
+          primitive_marker: :label,
+          font: $font,
+          x: Grid.w / 2,
+          y: Grid.h / 2,
+          alignment_enum: 1,
+          size_enum: 15,
+          r: 255,
+          g: 0,
+          b: 0,
+          text: "Coming Soon..."
+        },
       ]
       @buttons.each { |b| all_primitives << b.primitives }
 
