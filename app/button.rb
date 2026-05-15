@@ -1,7 +1,7 @@
 class Button
   attr_reader :x, :y, :w, :h
 
-  def initialize(x, y, w, h, text = "", action = nil, enabled_when: nil, sprite: nil, sprite_pressed: nil, &block)
+  def initialize(x, y, w, h, text = "", action = nil, enabled_when: nil, sprite: nil, sprite_pressed: nil, font_size_enum: 3, &block)
     @x, @y, @w, @h = x, y, w, h
     @text = text
     @action = action || block
@@ -13,6 +13,7 @@ class Button
     @target_a = @a
     @sprite = sprite
     @sprite_pressed = sprite_pressed
+    @font_size_enum = font_size_enum
   end
 
   def rect
@@ -74,7 +75,6 @@ class Button
 
     [
       rect.merge(primitive_marker: :sprite, a: @a, **bg, path: sprite_path),
-      rect.merge(primitive_marker: :border, r: 0, g: 0, b: 0, a: @a),
       {
         primitive_marker: :label,
         x: @x + @w / 2,
@@ -82,8 +82,9 @@ class Button
         font: $font,
         text: @text,
         alignment_enum: 1,
+        size_enum: @font_size_enum,
         vertical_alignment_enum: 1,
-        r: 0, g: 0, b: 0,
+        r: 117, g: 72, b: 0,
         a: @a
       }
     ]

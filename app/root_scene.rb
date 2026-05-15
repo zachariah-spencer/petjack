@@ -13,7 +13,7 @@ require_relative "multiplayer_scene"
       self.args = args
 
       # globals
-      $font = "fonts/merriweather.ttf"
+      $font = "fonts/merriweather_bold.ttf"
       $coins = 50
       
       EventBus.new
@@ -89,7 +89,7 @@ require_relative "multiplayer_scene"
 
     def render
       # set the background color
-      outputs.background_color = [20,20,20]
+      outputs.background_color = [30, 30, 30]
 
       # initialize the previous_scene and current_scene render targets
       outputs[:previous_scene].set w: Grid.w,

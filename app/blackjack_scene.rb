@@ -160,16 +160,16 @@ require_relative "button"
         sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-arrow-right-pressed.png", 
         enabled_when: -> { true }) { leave_blackjack },
 
-        Button.new(Grid.w / 2 - 52 - 10, Grid.h / 2 - 50 - 44, 52, 44, "-", enabled_when: -> { can_decrease_bet? }) { decrease_bet },
-        Button.new(Grid.w / 2 + 10, Grid.h / 2 - 50 - 44, 52, 44, "+", enabled_when: -> { can_increase_bet? }) { increase_bet },
-        Button.new(Grid.w / 2 - 100, Grid.h / 2 - 40, 200, 80, "Deal", enabled_when: -> { can_start_round? }) { start_round },
-        Button.new(32, 32 + 20 + (70 * 0), 120, 44, "Hit", enabled_when: -> { can_hit? }) { hit },
-        Button.new(32, 32 + 20 + (70 * 1), 120, 44, "Stand", enabled_when: -> { can_stand? }) { stand },
-        Button.new(32, 32 + 20 + (70 * 2), 120, 44, "Double", enabled_when: -> { can_double_down? }) { double_down },
-        Button.new(42, 32 + 20 + (70 * 3), 120, 44, "Split", enabled_when: -> { can_split? }) { split_hand },
-        Button.new(Grid.w - 172, 32, 140, 44, "Next Round", enabled_when: -> { can_reset_round? }) { reset_round },
-        Button.new(Grid.w / 2 - 150, Grid.h / 2 - 14, 120, 40, "Yes", enabled_when: -> { can_take_insurance? }) { take_insurance },
-        Button.new(Grid.w / 2 + 10, Grid.h / 2 - 14, 120, 40, "No", enabled_when: -> { can_decline_insurance? }) { decline_insurance }
+        Button.new(Grid.w / 2 - 83 - 10, Grid.h / 2 - 196, 83, 86, "-", font_size_enum: 14, sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_decrease_bet? }) { decrease_bet },
+        Button.new(Grid.w / 2 + 10, Grid.h / 2 - 196, 83, 86, "+", font_size_enum: 14, sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_increase_bet? }) { increase_bet },
+        Button.new(Grid.w / 2 - 62.25, Grid.h / 2 - 64.5, 124.5, 129, "Deal", font_size_enum: 10, sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_start_round? }) { start_round },
+        Button.new(32, 64 + (127.5 * 0), 103.75, 107.5, "Hit", sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_hit? }) { hit },
+        Button.new(32, 64 + (127.5 * 1), 103.75, 107.5, "Stand", sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_stand? }) { stand },
+        Button.new(32, 64 + (127.5 * 2), 103.75, 107.5, "Double", sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_double_down? }) { double_down },
+        Button.new(32, 64 + (127.5 * 3), 103.75, 107.5, "Split", sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_split? }) { split_hand },
+        Button.new(Grid.w - 172, 32, 103.75, 107.5, "Reset", sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_reset_round? }) { reset_round },
+        Button.new(Grid.w / 2 - 150, Grid.h / 2 - 14, 120, 40, "Yes", sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_take_insurance? }) { take_insurance },
+        Button.new(Grid.w / 2 + 10, Grid.h / 2 - 14, 120, 40, "No", sprite: "sprites/garden_cozy/assets/menu_buttons/clear/button.png", sprite_pressed: "sprites/garden_cozy/assets/menu_buttons/clear/pressed/button-pressed.png", enabled_when: -> { can_decline_insurance? }) { decline_insurance }
       ]
     end
 

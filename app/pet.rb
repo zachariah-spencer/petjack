@@ -26,7 +26,7 @@ class Pet
     @jump_time = Numeric.rand(1..5)
 
     # game vars
-    @name = "Silly Little Goober"
+    @name = ""
     @level = 1
     @coins = 0
     @coins_needed = 10
@@ -134,6 +134,11 @@ class Pet
     if @coins >= @coins_needed
       level_up
     end
+  end
+
+  def name=(new_name)
+    cleaned_name = new_name.to_s.strip
+    @name = cleaned_name.empty? ? @name : cleaned_name
   end
 
   def draw
